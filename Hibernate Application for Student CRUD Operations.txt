@@ -1,0 +1,232 @@
+// SQL CODE
+
+CREATE DATABASE hibernate_demo;
+USE hibernate_demo;
+
+
+
+// Student.java
+
+package com.example.hibernate;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "student")
+public class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "email", unique = true)
+    private String email;
+
+    @Column(name = "age")
+    private int age;
+
+    // Constructors
+    public Student() {}
+    public Student(String name, String email, int age) {
+        this.name = name;
+        this.email = email;
+        this.age = age;
+    }
+
+    // Getters & Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+
+    @Override
+    public String toString() {
+        return "Student [ID=" + id + ", Name=" + name + ", Email=" + email + ", Age=" + age + "]";
+    }
+}
+
+
+// Hibernate Configuration (hibernate.cfg.xml)
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <!-- Database Connection Settings -->
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/hibernate_demo</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">yourpassword</property>
+
+        <!-- Hibernate Settings -->
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="show_sql">true</property>
+
+        <!-- Entity Class -->
+        <mapping class="com.example.hibernate.Student"/>
+    </session-factory>
+</hibernate-configuration>
+
+
+
+
+// Hibernate Utility (HibernateUtil.java)
+
+
+package com.example.hibernate;
+
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
+
+public class HibernateUtil {
+    private static SessionFactory sessionFactory;
+
+    static {
+        try {
+            sessionFactory = new Configuration()
+                    .configure("hibernate.cfg.xml")
+                    .buildSessionFactory();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static SessionFactory getSessionFactory() {
+        return sessionFactory;
+    }
+}
+
+
+
+//StudentCRUD.java (Main CRUD Operations)
+
+
+package com.example.hibernate;
+
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import java.util.List;
+
+public class StudentCRUD {
+
+    public static void main(String[] args) {
+        // Create
+        createStudent(new Student("John Doe", "john@example.com", 22));
+
+        // Read all
+        readAllStudents();
+
+        // Update
+        updateStudent(1, "John Updated", 25);
+
+        // Delete
+        deleteStudent(1);
+    }
+
+    // CREATE
+    public static void createStudent(Student student) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            session.persist(student);
+            transaction.commit();
+            System.out.println("Student saved: " + student);
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
+            e.printStackTrace();
+        }
+    }
+
+    // READ
+    public static void readAllStudents() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<Student> students = session.createQuery("from Student", Student.class).list();
+            System.out.println("All Students:");
+            students.forEach(System.out::println);
+        }
+    }
+
+    // UPDATE
+    public static void updateStudent(int id, String newName, int newAge) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            Student student = session.get(Student.class, id);
+            if (student != null) {
+                student.setName(newName);
+                student.setAge(newAge);
+                session.merge(student);
+                transaction.commit();
+                System.out.println("Updated: " + student);
+            } else {
+                System.out.println("Student with ID " + id + " not found.");
+            }
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
+            e.printStackTrace();
+        }
+    }
+
+    // DELETE
+    public static void deleteStudent(int id) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            Student student = session.get(Student.class, id);
+            if (student != null) {
+                session.remove(student);
+                transaction.commit();
+                System.out.println("Deleted Student with ID: " + id);
+            } else {
+                System.out.println("Student with ID " + id + " not found.");
+            }
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
+//Maven Dependencies (pom.xml)
+
+
+<dependencies>
+    <!-- Hibernate Core -->
+    <dependency>
+        <groupId>org.hibernate.orm</groupId>
+        <artifactId>hibernate-core</artifactId>
+        <version>6.3.1.Final</version>
+    </dependency>
+
+    <!-- MySQL Connector -->
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <version>8.4.0</version>
+    </dependency>
+
+    <!-- Jakarta Persistence API -->
+    <dependency>
+        <groupId>jakarta.persistence</groupId>
+        <artifactId>jakarta.persistence-api</artifactId>
+        <version>3.1.0</version>
+    </dependency>
+</dependencies>
+
