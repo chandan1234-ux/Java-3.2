@@ -1,0 +1,82 @@
+package com.example.springdi;
+
+public class Course {
+    private String courseName;
+
+    public Course(String courseName) {
+        this.courseName = courseName;
+    }
+
+    public void displayCourse() {
+        System.out.println("Enrolled in course: " + courseName);
+    }
+}
+
+
+// Student.java
+
+package com.example.springdi;
+
+public class Student {
+    private Course course;  // dependency
+
+    // Constructor-based dependency injection
+    public Student(Course course) {
+        this.course = course;
+    }
+
+    public void showInfo() {
+        System.out.println("Student information:");
+        course.displayCourse();
+    }
+}
+
+
+// Application.java
+
+
+package com.example.springdi;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration  // tells Spring this class contains bean definitions
+public class AppConfig {
+
+    @Bean
+    public Course course() {
+        return new Course("Spring Framework Basics");
+    }
+
+    @Bean
+    public Student student() {
+        // Spring will inject the Course bean automatically
+        return new Student(course());
+    }
+}
+
+
+
+// Mainapp.java
+
+
+package com.example.springdi;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+public class MainApp {
+    public static void main(String[] args) {
+        // Initialize Spring context from Java-based config
+        ApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
+
+        // Retrieve the student bean
+        Student student = context.getBean(Student.class);
+
+        // Call method to verify DI
+        student.showInfo();
+
+        ((AnnotationConfigApplicationContext) context).close();
+    }
+}
+
